@@ -1,0 +1,15 @@
+name = "worker-TMDB-bannerer"
+main = "worker-tmdb-bannerer.js"
+compatibility_date = "2024-12-01"
+workers_dev = true
+
+[vars]
+TMDB_API_KEY = "780f18e29881652947442f319032ebba"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "neon-anime-db"
+database_id = "3ee54e19-03cb-45ce-8877-a540e1d78adf"
+
+[triggers]
+crons = ["*/10 * * * *"]
