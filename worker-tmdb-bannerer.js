@@ -37,61 +37,37 @@ async function fetchHighResPoster(env, title, year) {
 
   const query = encodeURIComponent(title.trim());
 
-  const url = `https://api.themoviedb.org/3/search/multi?api_key=${env.TMDB_API_KEY}&query=${query}`;
+  // Search TV first (most anime are TV)
+  const tvUrl = `https://api.themoviedb.org/3/search/tv?api_key=${env.TMDB_API_KEY}&query=${query}`;
 
-  const res = await fetch(url);
-  if (!res.ok) return null;
+  const tvRes = await fetch(tvUrl);
+  if (tvRes.ok) {
+    const tvData = await tvRes.json();
 
-  const data = await res.json();
-  if (!data.results?.length) return null;
+    const animeTv = tvData.results?.find(r =>
+      r.poster_path &&
+      r.genre_ids?.includes(16) // 16 = Animation
+    );
 
-  // Score results
-  let bestScore = 0;
-  let bestMatch = null;
-
-  for (const result of data.results) {
-
-    if (!result.poster_path) continue;
-
-    // Prefer anime-like content
-    if (result.media_type !== "tv" && result.media_type !== "movie")
-      continue;
-
-    let score = 0;
-
-    // Title similarity
-    const resultTitle =
-      result.title || result.name || "";
-
-    if (resultTitle.toLowerCase() === title.toLowerCase())
-      score += 5;
-
-    if (resultTitle.toLowerCase().includes(title.toLowerCase()))
-      score += 3;
-
-    // Year match bonus
-    const resultYear = (
-      result.release_date ||
-      result.first_air_date ||
-      ""
-    ).split("-")[0];
-
-    if (year && resultYear) {
-      if (Math.abs(Number(resultYear) - Number(year)) <= 1)
-        score += 3;
-    }
-
-    // Prefer TV
-    if (result.media_type === "tv")
-      score += 2;
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = result;
+    if (animeTv) {
+      return `https://image.tmdb.org/t/p/original${animeTv.poster_path}`;
     }
   }
 
-  if (!bestMatch) return null;
+  // If not found, search Movie
+  const movieUrl = `https://api.themoviedb.org/3/search/movie?api_key=${env.TMDB_API_KEY}&query=${query}`;
 
-  return `https://image.tmdb.org/t/p/original${bestMatch.poster_path}`;
+  const movieRes = await fetch(movieUrl);
+  if (!movieRes.ok) return null;
+
+  const movieData = await movieRes.json();
+
+  const animeMovie = movieData.results?.find(r =>
+    r.poster_path &&
+    r.genre_ids?.includes(16) // 16 = Animation
+  );
+
+  if (!animeMovie) return null;
+
+  return `https://image.tmdb.org/t/p/original${animeMovie.poster_path}`;
 }
